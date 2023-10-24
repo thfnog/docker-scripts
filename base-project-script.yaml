@@ -3,7 +3,7 @@ version: '3.5'
 services:
   postgres:
     container_name: postgresql
-    image: postgres:9.6.24-alpine
+    image: postgres:15-alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -14,6 +14,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   mysql:
+    container_name: mysql
     image: mysql
     command: --default-authentication-plugin=mysql_native_password
     restart: always
@@ -24,6 +25,7 @@ services:
       MYSQL_DATABASE: mysql
 
   mongo:
+    container_name: mongo
     image: mongo
     ports:
       - 27017:27017
@@ -33,6 +35,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: 123456
 
   mongo-express:
+    container_name: mongo-express
     image: mongo-express
     restart: always
     ports:
@@ -42,6 +45,7 @@ services:
       ME_CONFIG_MONGODB_ADMINPASSWORD: 123456
 
   redis:
+    container_name: redis
     image: 'bitnami/redis:latest'
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
@@ -51,6 +55,7 @@ services:
       - app-tier
 
   redis-sentinel:
+    container_name: redis-sentinel
     image: 'bitnami/redis-sentinel:latest'
     environment:
       - REDIS_MASTER_HOST=localhost
@@ -61,18 +66,21 @@ services:
       - app-tier
 
   adminer:
+    container_name: adminer
     image: adminer
     restart: always
     ports:
       - 9090:8080
 
   mailhog:
+    container_name: mailhog
     image: mailhog/mailhog
     ports:
       - 1025:1025
       - 8025:8025
   
   sftp:
+    container_name: sftp
     image: atmoz/sftp
     volumes:
         - sftp-data:/home/user/job_reports
