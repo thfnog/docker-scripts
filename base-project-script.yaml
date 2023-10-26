@@ -30,9 +30,12 @@ services:
     ports:
       - 27017:27017
     restart: always
+    volumes:
+      - mongo-data:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: 123456
+      MONGO_INITDB_DATABASE: admin
 
   mongo-express:
     container_name: mongo-express
@@ -43,6 +46,7 @@ services:
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
       ME_CONFIG_MONGODB_ADMINPASSWORD: 123456
+      ME_CONFIG_MONGODB_URL: mongodb://root:123456@mongo:27017/
 
   redis:
     container_name: redis
@@ -99,6 +103,7 @@ services:
 volumes:
   sftp-data:
   postgres-data:
+  mongo-data:
 
 networks:
   app-tier:
