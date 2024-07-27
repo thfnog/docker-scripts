@@ -13,14 +13,17 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
+  #https://stackoverflow.com/a/19101356 To add permission to 172.18.0.1
   mysql:
     image: mysql/mysql-server:latest
     container_name: mysql
     restart: always
     environment:
-      - MYSQL_DATABASE=mysql
-      - MYSQL_ROOT_PASSWORD=admin
-      - MYSQL_USERNAME=admin
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=angular
+      - MYSQL_PASSWORD=root
+      - MYSQL_USERNAME=root
+      - MYSQL_ROOT_HOST=172.18.0.1
     ports:
       - '3306:3306'
     volumes:
@@ -107,7 +110,6 @@ volumes:
   postgres-data:
   mongo-data:
   mysql-volume:
-    driver: local
 
 networks:
   app-tier:
