@@ -1,0 +1,189 @@
+version: "3.7"
+services:
+
+  ### Kafka ###
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - app-tier
+
+  broker:
+    image: confluentinc/cp-server:latest
+    hostname: broker
+    container_name: broker
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
+      CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_METRICS_ENABLE: "true"
+      CONFLUENT_SUPPORT_CUSTOMER_ID: "anonymous"
+    networks:
+      - app-tier
+
+  createtopics:
+    image: confluentinc/cp-kafka:latest
+    hostname: createtopics
+    container_name: createtopics
+    depends_on:
+      - broker
+    command:
+      - sh
+      - -c
+      - |
+        sleep 10; 
+        /usr/bin/kafka-topics --bootstrap-server broker:29092 --create --if-not-exists --topic output-topic --replication-factor 1 --partitions 1;
+        exit 0;
+    networks:
+      - app-tier
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - zookeeper
+      - broker
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "zookeeper:2181"
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://broker:29092
+      SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: PLAINTEXT
+      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+      SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_METHODS: GET,POST,PUT,OPTIONS
+      SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_ORIGIN: '*'
+      SCHEMA_REGISTRY_SCHEMA_REGISTRY_INTER_INSTANCE_PROTOCOL: "http"
+      SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: INFO
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
+    networks:
+      - app-tier
+
+  createschemas:
+    image: curlimages/curl:latest
+    hostname: createschemas
+    container_name: createschemas
+    depends_on:
+      - schema-registry
+    command:
+      - sh
+      - -c
+      - |
+        curl --head -X GET --retry 5 --retry-connrefused --retry-delay 5 http://schema-registry:8081
+        curl --head -X GET --retry 5 --retry-connrefused --retry-delay 5 http://schema-registry:8081
+        curl --location 'http://schema-registry:8081/subjects/kafka-action-test/versions' \
+          --header 'Content-Type: application/vnd.schemaregistry.v1+json' \
+          --data '{
+            "schemaType": "AVRO",
+            "schema": "{\"type\": \"record\",\"name\": \"Event\",\"namespace\": \"br.com.elo.eloflow\",\"doc\": \"This is the header of the event.\",\"fields\": [{\"name\": \"eventSource\",\"type\": \"string\",\"doc\": \"the event source system.\"},{\"name\": \"correlationId\",\"type\": {\"type\": \"string\"},\"doc\": \"the correlation id in UUID.\"},{\"name\": \"eventDate\",\"type\": \"string\",\"doc\": \"the date and time the event was generated.\"},{\"name\": \"data\",\"doc\": \"The body content of the event\",\"type\": {\"type\": \"record\",\"name\": \"Data\",\"fields\": [{\"name\": \"mapping\",\"doc\": \"The complement information about this event into map of string\",\"type\": {\"type\":\"map\",\"values\":\"string\",\"avro.java.string\": \"String\",\"default\": {}}}]}}]}"
+          }'
+        exit 0;
+    networks:
+      - app-tier
+
+  kafka-ui:
+    container_name: kafka-ui
+    hostname: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8080:8080
+    depends_on:
+      - broker
+      - schema-registry
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker:29092
+      CONTROL_CENTER_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9997
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    networks:
+      - app-tier
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server --console-address ":9001" /data
+    expose:
+      - "9000"
+      - "9001"
+    environment:
+      MINIO_BROWSER_LOGIN_ANIMATION: "off"
+      MINIO_ADDRESS: ':9000'
+      MINIO_CONSOLE_ADDRESS: ':9001'
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - app-tier
+
+  minio-setup:
+    container_name: minio-setup
+    image: minio/mc
+    depends_on:
+      - minio
+    restart: on-failure
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/flink-bucket;
+      /usr/bin/mc anonymous set public myminio/flink-bucket;
+      "
+    networks:
+      - app-tier
+
+  redis:
+    container_name: redis
+    image: 'bitnami/redis:latest'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-tier
+
+  redis-setup:
+    image: redis
+    container_name: redis-setup
+    command: >
+      sh -c "redis-cli -h redis SET developer 'true' && redis-cli -h redis GET developer"
+    depends_on:
+      - redis
+    networks:
+      - app-tier
+
+networks:
+  app-tier:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
