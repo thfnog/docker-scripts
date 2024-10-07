@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: schema-registry-setup
+  namespace: local
+spec:
+  template:
+    spec:
+      containers:
+        - name: setup-avro
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              curl --head -X GET --retry 5 --retry-connrefused --retry-delay 5 http://schema-registry-service:30081
+              curl --location 'http://schema-registry-service:30081/subjects/input-topic-value/versions' \
+                --header 'Content-Type: application/vnd.schemaregistry.v1+json' \
+                --data '{
+                  "schemaType": "JSON",
+                  "schema": "{\"type\":\"object\",\"properties\":{\"eventSource\":{\"type\":\"string\",\"description\":\"The event source system.\"},\"correlationId\":{\"type\":\"string\",\"format\":\"uuid\",\"description\":\"The correlation ID in UUID format.\"},\"eventDate\":{\"type\":\"string\",\"format\":\"date-time\",\"description\":\"The date and time the event was generated.\"}},\"required\":[\"eventSource\",\"correlationId\",\"eventDate\"]}"
+                }';
+              sleep 5;
+              curl --head -X GET --retry 5 --retry-connrefused --retry-delay 5 http://schema-registry-service:30081
+              curl --location 'http://schema-registry-service:30081/subjects/kafka-action-test/versions' \
+                --header 'Content-Type: application/vnd.schemaregistry.v1+json' \
+                --data '{
+                  "schemaType": "AVRO",
+                  "schema": "{\"type\": \"record\",\"name\": \"Event\",\"namespace\": \"br.com.elo.eloflow\",\"doc\": \"This is the header of the event.\",\"fields\": [{\"name\": \"eventSource\",\"type\": \"string\",\"doc\": \"the event source system.\"},{\"name\": \"correlationId\",\"type\": {\"type\": \"string\"},\"doc\": \"the correlation id in UUID.\"},{\"name\": \"eventDate\",\"type\": \"string\",\"doc\": \"the date and time the event was generated.\"},{\"name\": \"data\",\"doc\": \"The body content of the event\",\"type\": {\"type\": \"record\",\"name\": \"Data\",\"fields\": [{\"name\": \"mapping\",\"doc\": \"The complement information about this event into map of string\",\"type\": {\"type\":\"map\",\"values\":\"string\",\"avro.java.string\": \"String\",\"default\": {}}}]}}]}"
+                }'
+              exit 0;
+      restartPolicy: OnFailure

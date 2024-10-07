@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio-jar-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio-jar-app
+  template:
+    metadata:
+      labels:
+        app: minio-jar-app
+    spec:
+      containers:
+        - name: minio-jar-container
+          image: busybox
+          command: ["sh", "-c", "apk update && apk add curl && curl -o /tmp/app.jar --location --header 'Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)' https://minio-service:9000/$(cat /mnt/minio-jar-config/bucket)/$(cat /mnt/minio-jar-config/jarFileName) && sleep infinity"]
+          volumeMounts:
+            - name: minio-jar-config
+              mountPath: /mnt/minio-jar-config
+          env:
+            - name: MINIO_SERVER
+              value: "minio-service:9000"
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: accessKey
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secretKey
+      volumes:
+        - name: minio-jar-config
+          configMap:
+            name: minio-jar-config

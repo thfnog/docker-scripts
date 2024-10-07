@@ -1,0 +1,130 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: flink-checkpoint-pvc
+  namespace: local
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+
+# Configurations
+apiVersion: v1
+data:
+  job.properties: |+
+    ### API Notification
+    rest.api.notification.base-url=http://localhost:3001/elo-flow/notifications/flows/%s/jobs/status/update
+    
+    ### Flink Configurations
+    flink.core.restart-strategy.attempts-number=3
+    flink.core.restart-strategy.delay-seconds=10
+    flink.core.checkpoint.enable-interval-milliseconds=5000
+    flink.core.checkpoint.min.pause.between=5000
+    flink.core.checkpoint.timeout=60000
+    
+    ### Postgres Configurations
+    postgres.database.jdbc-url=jdbc:postgresql://postgresql-release.default:5432/elo_flow
+    postgres.database.username=postgres
+    postgres.database.password=bIrj7fX11t
+    hibernate.hikari.minimumIdle=5
+    hibernate.hikari.maximumPoolSize=15
+    hibernate.hikari.idleTimeout=30000
+    hibernate.show_sql=true
+    hibernate.hbm2ddl.auto=update
+    
+    ### Storage
+    flink.core.checkpoint.storage.base_folder=/opt/flink/volume
+    flink.core.checkpoint.storage.folder.checkpoints=/checkpoints
+    flink.core.checkpoint.storage.folder.savepoints=/savepoints
+    
+    #Kafka Configurations
+    kafka.sasl.mechanism=SCRAM-SHA-256
+    kafka.security.protocol=PLAINTEXT
+    kafka.topic.eloflow.subject=input-topic-value
+    
+    #Kafka Configurations Sink
+    kafka.sink.eloflow.brokers=kafka-broker:29092
+    kafka.sink.eloflow.user=user1
+    kafka.sink.eloflow.password=midXSJXRkw
+    kafka.sink.eloflow.topic=output-topic
+    kafka.sink.eloflow.schema.registry=http://schema-registry-service.local:8081
+kind: ConfigMap
+metadata:
+  name: job-flink-config
+  namespace: local
+
+---
+
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: eloflow-job-example
+  namespace: local
+spec:
+  image: cepplatform:latest
+  imagePullPolicy: Never
+  flinkVersion: v1_19
+  flinkConfiguration:
+    taskmanager.numberOfTaskSlots: "2"
+    state.backend.type: rocksdb
+    state.savepoints.dir: file:///opt/flink/volume/savepoints
+    state.checkpoints.dir: file:///opt/flink/volume/checkpoints
+    high-availability.type: kubernetes
+    high-availability.storageDir: file:///opt/flink/volume/ha
+    env.java.default-opts.all: --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED
+  serviceAccount: nodeapi-service-account
+  jobManager:
+    resource:
+      memory: "2048m"
+      cpu: 1
+  taskManager:
+    resource:
+      memory: "2048m"
+      cpu: 1
+  podTemplate:
+    spec:
+      containers:
+        - name: flink-main-container
+          env:
+            - name: FLINK_CORE_ENV
+              value: AZURE
+          volumeMounts:
+            - name: flink-volume
+              mountPath: /opt/flink/volume
+            - name: custom-flink-config-volume
+              mountPath: /opt/flink/conf/custom-config
+      volumes:
+        # Comment if using local directory in volume
+        - name: flink-volume
+          persistentVolumeClaim:
+            claimName: flink-checkpoint-pvc
+        # Uncomment to use local directory
+        #- name: flink-volume
+        #  hostPath:
+        #    # directory location on host ( change the username )
+        #    path: /Users/thiago.nogueira/workspace/eloflow/flink-elo-flow/temp
+        #    # this field is optional
+        #    type: Directory
+        - name: custom-flink-config-volume
+          configMap:
+            name: job-flink-config
+            items:
+              - key: job.properties
+                path: job.properties
+  job:
+    jarURI: local:///opt/flink/usrlib/cepplatform.jar
+    parallelism: 2
+    entryClass: br.com.elo.eloflow.cepplatform.DataStreamJob
+    args: [
+      '--flow', "{\"nodes\":[{\"id\":\"b4f329cc-f56e-462b-a65a-b0d4cb6990cf\",\"type\":\"NodeSourceKafka\",\"data\":{\"group\":\"mygroup\",\"topicUser\":\"user1\",\"topicPassword\":\"midXSJXRkw\",\"isNew\":false,\"label\":\"InputNode\",\"topic\":\"input-topic\",\"perfil\":\"Admin.\",\"values\":\"[]\",\"brokers\":\"kafka-broker:29092\",\"nameNode\":\"Teste\",\"className\":\"StepSourceKafka\",\"sourceName\":\"MeuKafka\",\"schemaRegistryUrl\":\"http://schema-registry.local:8081\"}},{\"id\":\"dac76d04-3111-4799-8df9-f69680feebb6\",\"type\":\"NodeHistoricalCount\",\"data\":{\"reference\":\"$.cpf\",\"nameNode\":\"node-historicalCount\",\"className\":\"StepHistoricalCount\"}}],\"edges\":[{\"source\":\"b4f329cc-f56e-462b-a65a-b0d4cb6990cf\",\"target\":\"dac76d04-3111-4799-8df9-f69680feebb6\",\"sourceHandle\":null}]}",
+    ]
+    upgradeMode: last-state
+    state: running
+    savepointTriggerNonce: 0
+    # Uncomment if testing restore savepoint path
+    #initialSavepointPath: /opt/flink/volume/savepoints/savepoint-ba994b-b7b47b03037b/_metadata

@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: schema-registry-service
+  namespace: local
+spec:
+  ports:
+    - name: outport
+      port: 30081
+      targetPort: 8081
+      nodePort: 30081
+  type: NodePort
+  selector:
+    service: schema-registry
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schema-registry
+  namespace: local
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: schema-registry
+  template:
+    metadata:
+      labels:
+        app: schema-registry
+        service: schema-registry
+    spec:
+      containers:
+        - name: schema-registry
+          image: confluentinc/cp-schema-registry:latest
+          ports:
+            - containerPort: 8081
+              name: http
+          env:
+            - name: SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL
+              value: 'PLAINTEXT'
+            - name: SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_METHODS
+              value: 'GET,POST,PUT,OPTIONS'
+            - name: SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_ORIGIN
+              value: '*'
+            - name: SCHEMA_REGISTRY_KAFKASTORE_TOPIC
+              value: '_schema'
+            - name: SCHEMA_REGISTRY_HOST_NAME
+              value: "schema-registry"
+            - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+              value: "kafka-broker:29092"
+            - name: SCHEMA_REGISTRY_LISTENERS
+              value: "http://0.0.0.0:8081"

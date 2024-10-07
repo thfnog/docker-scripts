@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: kafka-setup
+  name: kafka-setup
+  namespace: local
+spec:
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.service: kafka-setup
+    spec:
+      containers:
+        - name: kafka-setup
+          image: confluentinc/cp-kafka:latest
+          command:
+            - sh
+            - -c
+            - |
+              sleep 10; 
+              /usr/bin/kafka-topics --bootstrap-server kafka-broker:29092 --create --if-not-exists --topic input-topic --replication-factor 1 --partitions 1;
+              /usr/bin/kafka-topics --bootstrap-server kafka-broker:29092 --create --if-not-exists --topic output-topic --replication-factor 1 --partitions 1;
+              exit 0;
+      restartPolicy: OnFailure
