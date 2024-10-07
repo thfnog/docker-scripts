@@ -1,0 +1,27 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/latest/configs/bookmarks
+
+- Services:
+    - SailPoint:
+        - abbr: SP
+          href: https://elo-iga.identitynow.com/ui/d/dashboard/access/my-access
+          description: Get Access to ELO Services
+    - EloTeca:
+        - abbr: ET
+          href: https://elobr.sharepoint.com/sites/eloteca
+    - LG Portal:
+        - abbr: LP
+          href: https://login.lg.com.br/login/eloservicos
+    - Qulture.Rocks:
+        - abbr: QR
+          href: https://app.qulture.rocks/#/company/1142/one-page/contracts/919268
+
+- Dev:
+    - LeetCode:
+        - abbr: LC
+          href: https://leetcode.com/
+
+- Documentations:
+    - Observability:
+        - href: https://elo-confluence.atlassian.net/wiki/spaces/FundTech/pages/2109538355/Observabilidade+-+Rise

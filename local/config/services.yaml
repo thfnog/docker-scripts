@@ -1,0 +1,108 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/latest/configs/services
+# icons found here https://github.com/walkxcode/dashboard-icons
+
+- Containers:
+    - Rancher:
+        icon: rancher.svg
+        href: "{{HOMEPAGE_VAR_RANCHER_URL}}"
+        description: k8s
+    - Portainer:
+        icon: portainer.svg
+        href: "{{HOMEPAGE_VAR_PORTAINER_URL}}"
+        description: portainer
+        siteMonitor: "{{HOMEPAGE_VAR_PORTAINER_URL}}"
+        widget:
+            type: portainer
+            url: "{{HOMEPAGE_VAR_PORTAINER_URL}}"
+            env: 1
+            key: "{{HOMEPAGE_VAR_PORTAINER_API_KEY}}"
+
+- Local Services:
+    - MinIO:
+        icon: minio.svg
+        href: "{{HOMEPAGE_VAR_MINIO_URL}}"
+        description: Web UI for Object Storage Management
+    - Kafka UI:
+        icon: https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Apache_kafka.svg/154px-Apache_kafka.svg.png?20210416085520
+        href: "{{HOMEPAGE_VAR_KAFKA_UI_URL}}"
+        description: Web UI for Apache Kafka Management
+
+- Campaign Factory:
+    - Board:
+        icon: azure-devops.svg
+        href: https://dev.azure.com/elobr/Elo/_sprints/taskboard/Fab_Campanhas
+        description: dashboard
+    - campaign-factory-bind-sf:
+        icon: azure.svg
+        href: https://dev.azure.com/elobr/clientes-relacionamento/_git/campaign-factory-bind-sf
+        description: source code
+        # widget:
+        #     type: azuredevops
+        #     organization: ELO
+        #     project: https://dev.azure.com/elobr/clientes-relacionamento/_git/campaign-factory-bff
+        #     definitionId: 2337
+        #     userEmail: thiago.nogueira@elo.com.br
+        #     repositoryId: https://dev.azure.com/elobr/clientes-relacionamento/_git/campaign-factory-bff
+        #     key: r4m3vtv6r6whqivxd2nnlaxuulmtpgqqbt5tly46vzb2obgvt3cq
+    - campaign-factory-front:
+        icon: azure.svg
+        href: https://dev.azure.com/elobr/clientes-relacionamento/_git/campaign-factory-front
+        description: source code
+    - campaign-factory-bff:
+        icon: azure.svg
+        href: https://dev.azure.com/elobr/clientes-relacionamento/_git/campaign-factory-bff
+        description: source code
+    - Pipelines:
+        icon: azure-devops.svg
+        href: https://dev.azure.com/elobr/clientes-relacionamento/_build?definitionScope=%5Ccampaign-factory-bind-sf
+        description: pipeline
+    - Documentation:
+        icon: atlassian.svg
+        href: https://elo-confluence.atlassian.net/wiki/spaces/B2C/pages/1877803050/F+brica+de+Campanhas
+        description: confluence
+    - Miro:
+        icon: ipboard.svg
+        href: https://miro.com/app/board/uXjVKzpRUL8=/?moveToWidget=3458764596933681476&cot=14
+    - Miro Produtos:
+        icon: ipboard.svg
+        href: https://miro.com/app/board/uXjVNswjAl0=/?userEmail=thiago.nogueira@elo.com.br&track=true&utm_source=notification&utm_medium=email&utm_campaign=add-to-board&utm_content=go-to-board
+    - Draw.io:
+        icon: draw-io.png
+        href: https://app.diagrams.net/#G1_C4IZXzneSqXKXIq1hf7A6XdHtIXxXMU#%7B%22pageId%22%3A%22t23Qh1uXF7XRm7cHYOgh%22%7D
+        description: drawio
+
+- Cadastro Portador:
+    - Board:
+        icon: azure-devops.svg
+        href: https://dev.azure.com/elobr/Elo/_sprints/taskboard/Cadastro
+        description: dashboard
+    - api-user-v2:
+        icon: azure.svg
+        href: https://dev.azure.com/elobr/clientes-relacionamento/_git/api-user-v2
+        description: source code
+
+- Tokenização de Ativos:
+    - api-asset-tokenization:
+        icon: azure.svg
+        href: https://dev.azure.com/elobr/tokenizacao/_git/api-asset-tokenization
+        description: source code
+    - Documentation ARC:
+        icon: atlassian.svg
+        href: https://elo-confluence.atlassian.net/wiki/spaces/TDA/pages/2160689172/ARC+-+Tokeniza+o+de+Ativos+Cr+dito+de+Carbono
+        description: confluence
+
+- Infra:
+    - Manifest:
+        icon: azure-devops.svg
+        href: https://dev.azure.com/elobr/CICD/_git/manifests
+        description: manifest
+    - Pipelines:
+        icon: azure-devops.svg
+        href: https://dev.azure.com/elobr/CICD/_build
+        description: pipeline
+    - Datadog:
+        icon: datadog.svg
+        href: https://us3.datadoghq.com/apm/home
+        description: APM
